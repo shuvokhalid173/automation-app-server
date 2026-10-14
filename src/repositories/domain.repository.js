@@ -3,31 +3,31 @@ const db = require('../infrastructure/database');
 class DomainRepository {
     async findAll() {
         const [rows] = await db.execute(
-            'SELECT id, name, url, created_at FROM domains ORDER BY name ASC'
+            'SELECT id, name, url, description, connection_details, created_at FROM domains ORDER BY name ASC'
         );
         return rows;
     }
 
     async findById(id) {
         const [rows] = await db.execute(
-            'SELECT id, name, url, created_at FROM domains WHERE id = ?',
+            'SELECT id, name, url, description, connection_details, created_at FROM domains WHERE id = ?',
             [id]
         );
         return rows[0] || null;
     }
 
-    async create({ name, url }) {
+    async create({ name, url, description = null, connection_details = null }) {
         const [result] = await db.execute(
-            'INSERT INTO domains (name, url) VALUES (?, ?)',
-            [name, url]
+            'INSERT INTO domains (name, url, description, connection_details) VALUES (?, ?, ?, ?)',
+            [name, url, description, connection_details ? JSON.stringify(connection_details) : null]
         );
         return result.insertId;
     }
 
-    async update(id, { name, url }) {
+    async update(id, { name, url, description = null, connection_details = null }) {
         const [result] = await db.execute(
-            'UPDATE domains SET name = ?, url = ? WHERE id = ?',
-            [name, url, id]
+            'UPDATE domains SET name = ?, url = ?, description = ?, connection_details = ? WHERE id = ?',
+            [name, url, description, connection_details ? JSON.stringify(connection_details) : null, id]
         );
         return result.affectedRows > 0;
     }

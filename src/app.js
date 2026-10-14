@@ -18,6 +18,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/domains', domainRoutes);
 app.use('/api/mailboxes', mailboxRoutes);
 app.use('/api/files', fileRoutes);

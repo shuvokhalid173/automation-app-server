@@ -18,10 +18,21 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
+CREATE TABLE `users` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `username` varchar(255) NOT NULL,
+  `email` varchar(255) UNIQUE NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `domains` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `url` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `connection_details` json DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -69,12 +80,12 @@ CREATE TABLE `mailboxes` (
   CONSTRAINT `fk_mailboxes_domain` FOREIGN KEY (`domain_id`) REFERENCES `domains` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Mailbox accounts linked to a domain';
 
-INSERT INTO `domains` (`id`, `name`, `url`, `created_at`, `updated_at`) VALUES
-(4, 'GMX', 'imap.gmx.net', '2026-09-03 00:25:58', '2026-09-03 00:27:57'),
-(5, 'PayPal', 'www.paypal.com/', '2026-09-03 00:25:58', '2026-09-03 00:27:57'),
-(6, 'Etsy', 'www.etsy.com', '2026-09-13 22:18:52', '2026-09-13 22:18:52'),
-(8, 'Lexware', 'www.lexware.de', '2026-09-13 22:20:43', '2026-09-13 22:20:43'),
-(10, 'eBay', 'www.ebay.com', '2026-09-14 22:05:23', '2026-09-14 22:05:23');
+INSERT INTO `domains` (`id`, `name`, `url`, `description`, `created_at`, `updated_at`) VALUES
+(4, 'GMX', 'imap.gmx.net', 'Connect your GMX IMAP mailbox to automatically sync incoming and outgoing email invoices.', '2026-09-03 00:25:58', '2026-09-03 00:27:57'),
+(5, 'PayPal', 'www.paypal.com/', 'Generate monthly transaction reports and PDF ledgers from your PayPal business account.', '2026-09-03 00:25:58', '2026-09-03 00:27:57'),
+(6, 'Etsy', 'www.etsy.com', 'Automate your Etsy financial ledgers and monthly transaction reports via OAuth.', '2026-09-13 22:18:52', '2026-09-13 22:18:52'),
+(8, 'Lexware', 'www.lexware.de', 'Export incoming and outgoing vouchers directly from your Lexoffice accounting software.', '2026-09-13 22:20:43', '2026-09-13 22:20:43'),
+(10, 'eBay', 'www.ebay.com', 'Secure drop-zone for processing and routing your eBay monthly invoices.', '2026-09-14 22:05:23', '2026-09-14 22:05:23');
 
 INSERT INTO `files` (`id`, `original_name`, `displayed_name_local`, `is_downloaded`, `downloaded_date_time`, `is_uploaded_to_destination`, `upload_destination`, `uploaded_date_time`, `is_manually_uploaded`, `mailbox_id`, `is_soft_deleted`, `local_file_location`, `created_at`, `updated_at`) VALUES
 (329, 'Etsy_Report_2026-09.pdf', 'Etsy_Report_2026-09.pdf', 1, '2026-09-18 11:00:40', 1, 'f9qrq+buchhaltung@portal-bereich.de', '2026-09-19 02:39:44', 0, 7, 0, 'C:/Users/Rene/Desktop/Neuer Ordner/n8n-workflow-main/n8n-workflow-main/downloads/Etsy/Sent/Etsy_Report_2026-09.pdf', '2026-09-18 11:00:40', '2026-09-19 02:55:16'),

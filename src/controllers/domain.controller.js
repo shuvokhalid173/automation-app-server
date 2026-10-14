@@ -13,9 +13,9 @@ class DomainController {
 
     async create(req, res, next) {
         try {
-            const { name, url } = req.body;
+            const { name, url, description, connection_details } = req.body;
             if (!name || !url) return res.status(400).json({ success: false, message: 'Name and URL are required' });
-            const domain = await domainService.createDomain({ name, url });
+            const domain = await domainService.createDomain({ name, url, description, connection_details });
             return ApiResponse.success(res, domain, 201);
         } catch (err) {
             if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'Domain with this URL already exists' });
@@ -25,9 +25,9 @@ class DomainController {
 
     async update(req, res, next) {
         try {
-            const { name, url } = req.body;
+            const { name, url, description, connection_details } = req.body;
             if (!name || !url) return res.status(400).json({ success: false, message: 'Name and URL are required' });
-            const domain = await domainService.updateDomain(req.params.id, { name, url });
+            const domain = await domainService.updateDomain(req.params.id, { name, url, description, connection_details });
             return ApiResponse.success(res, domain);
         } catch (err) {
             if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'Domain with this URL already exists' });
