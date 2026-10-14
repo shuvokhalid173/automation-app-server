@@ -16,6 +16,14 @@ class DomainRepository {
         return rows[0] || null;
     }
 
+    async findByName(name) {
+        const [rows] = await db.execute(
+            'SELECT id, name, url, description, connection_details, created_at FROM domains WHERE name = ?',
+            [name]
+        );
+        return rows[0] || null;
+    }
+
     async create({ name, url, description = null, connection_details = null }) {
         const [result] = await db.execute(
             'INSERT INTO domains (name, url, description, connection_details) VALUES (?, ?, ?, ?)',

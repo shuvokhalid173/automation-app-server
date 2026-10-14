@@ -18,4 +18,9 @@ module.exports = {
         secret: process.env.JWT_SECRET || 'aiaas_jwt_default_secret_key_change_me',
         expiresIn: process.env.JWT_EXPIRES_IN || '24h',
     },
+    etsy: {
+        keystring: process.env.ETSY_KEYSTRING || '',
+        redirectUri: process.env.ETSY_REDIRECT_URI || 'http://localhost:3000/oauth/etsy/callback',
+    },
 };
+
