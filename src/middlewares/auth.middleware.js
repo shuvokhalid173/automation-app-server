@@ -19,6 +19,11 @@ function authenticateToken(req, res, next) {
     try {
         const decoded = jwt.verify(token, config.jwt.secret);
         req.user = decoded;
+
+        // Match user's email against configured ADMIN_EMAIL in .env
+        const userEmail = (decoded.email || '').toLowerCase().trim();
+        req.user.isAdmin = config.adminEmails.includes(userEmail);
+
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
@@ -28,6 +33,26 @@ function authenticateToken(req, res, next) {
     }
 }
 
+/**
+ * Middleware ensuring only admin users can access the endpoint
+ */
+function requireAdmin(req, res, next) {
+    if (!req.user) {
+        return ApiResponse.error(res, 'Authorization token required', 401);
+    }
+
+    const userEmail = (req.user.email || '').toLowerCase().trim();
+    const isAdmin = config.adminEmails.includes(userEmail);
+
+    if (!isAdmin) {
+        return ApiResponse.error(res, 'Forbidden: Admin access required', 403);
+    }
+
+    req.user.isAdmin = true;
+    next();
+}
+
 module.exports = {
     authenticateToken,
+    requireAdmin,
 };

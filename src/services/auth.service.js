@@ -49,6 +49,7 @@ class AuthService {
 
         // Generate JWT token
         const token = this.generateToken(newUser);
+        const isAdmin = config.adminEmails.includes(newUser.email.toLowerCase().trim());
 
         return {
             token,
@@ -56,6 +57,7 @@ class AuthService {
                 id: newUser.id,
                 username: newUser.username,
                 email: newUser.email,
+                isAdmin,
                 created_at: newUser.created_at,
             },
         };
@@ -90,6 +92,7 @@ class AuthService {
         }
 
         const token = this.generateToken(user);
+        const isAdmin = config.adminEmails.includes(user.email.toLowerCase().trim());
 
         return {
             token,
@@ -97,6 +100,7 @@ class AuthService {
                 id: user.id,
                 username: user.username,
                 email: user.email,
+                isAdmin,
                 created_at: user.created_at,
             },
         };
@@ -107,10 +111,12 @@ class AuthService {
      * @param {object} user
      */
     generateToken(user) {
+        const isAdmin = config.adminEmails.includes(user.email.toLowerCase().trim());
         const payload = {
             id: user.id,
             username: user.username,
             email: user.email,
+            isAdmin,
         };
 
         const secret = config.jwt.secret;

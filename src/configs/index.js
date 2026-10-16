@@ -14,6 +14,10 @@ module.exports = {
         connectionLimit: 10,
         queueLimit: 0,
     },
+    adminEmail: process.env.ADMIN_EMAIL || 'shuvokhalid173@gmail.com',
+    adminEmails: (process.env.ADMIN_EMAIL || 'shuvokhalid173@gmail.com')
+        .split(',')
+        .map(e => e.trim().toLowerCase()),
     jwt: {
         secret: process.env.JWT_SECRET || 'aiaas_jwt_default_secret_key_change_me',
         expiresIn: process.env.JWT_EXPIRES_IN || '24h',
