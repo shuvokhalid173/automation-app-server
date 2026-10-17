@@ -6,9 +6,9 @@ class IntegrationRepository {
      * @param {number} userId
      * @param {number} domainId
      * @param {string} accessToken
-     * @param {string} refreshToken
+     * @param {string|null} [refreshToken] - null for API-key based platforms (e.g. Lexware)
      */
-    async upsertTokens(userId, domainId, accessToken, refreshToken) {
+    async upsertTokens(userId, domainId, accessToken, refreshToken = null) {
         const sql = `
             INSERT INTO user_integrations (user_id, domain_id, access_token, refresh_token, is_connected)
             VALUES (?, ?, ?, ?, 1)
@@ -18,7 +18,9 @@ class IntegrationRepository {
                 is_connected = 1,
                 updated_at = NOW()
         `;
-        const [result] = await db.execute(sql, [userId, domainId, accessToken, refreshToken]);
+        // mysql2's execute() throws on `undefined` bind values, so normalize to null
+        const params = [userId, domainId, accessToken ?? null, refreshToken ?? null];
+        const [result] = await db.execute(sql, params);
         return result.affectedRows > 0;
     }
 

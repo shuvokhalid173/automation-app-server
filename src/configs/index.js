@@ -26,5 +26,15 @@ module.exports = {
         keystring: process.env.ETSY_KEYSTRING || '',
         redirectUri: process.env.ETSY_REDIRECT_URI || 'http://localhost:3000/oauth/etsy/callback',
     },
+    encryptionKey: process.env.ENCRYPTION_KEY || '',
+    lexoffice: {
+        apiBaseUrl: process.env.LEXOFFICE_API_URL || 'https://api.lexoffice.io/v1',
+    },
+    paypal: {
+        clientId: process.env.PAYPAL_CLIENT_ID || '',
+        clientSecret: process.env.PAYPAL_SECRET || '',
+        mode: process.env.PAYPAL_MODE || 'sandbox',
+        redirectUri: process.env.PAYPAL_REDIRECT_URI || 'http://localhost:3000/oauth/paypal/callback',
+    },
 };
 
