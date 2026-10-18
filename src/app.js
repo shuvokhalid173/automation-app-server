@@ -24,6 +24,7 @@ app.use('/api/domains', domainRoutes);
 app.use('/api/mailboxes', mailboxRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/manual-upload', require('./routes/manual-upload.routes'));
+app.use('/api/settings', require('./routes/settings.routes'));
 
 // 404 & Error handlers
 app.use(notFoundHandler);

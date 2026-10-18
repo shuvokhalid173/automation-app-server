@@ -10,6 +10,43 @@ const {
     generateCodeChallenge,
     generateState,
 } = require('../utils/oauth.util');
+const { ImapFlow } = require('imapflow');
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * GMX.com (international) uses a different IMAP host than gmx.de / gmx.net / gmx.at / gmx.ch.
+ */
+function resolveGmxImapHost(email) {
+    return /@gmx\.com$/i.test(email) ? 'imap.gmx.com' : 'imap.gmx.net';
+}
+
+/**
+ * Attempt an IMAP login and immediately log out.
+ * Throws on failure; `err.authenticationFailed` is true for bad credentials.
+ */
+async function validateImapLogin({ host, port = 993, email, password }) {
+    const client = new ImapFlow({
+        host,
+        port,
+        secure: true,
+        auth: { user: email, pass: password },
+        logger: false,
+        connectionTimeout: 15000,
+        greetingTimeout: 10000,
+        socketTimeout: 20000,
+    });
+    // Prevent an unhandled 'error' event from crashing the process
+    client.on('error', () => {});
+
+    try {
+        await client.connect();
+        await client.logout();
+    } catch (err) {
+        try { client.close(); } catch (_) { /* ignore */ }
+        throw err;
+    }
+}
 
 /**
  * Live-validators for platforms that use direct (non-OAuth) credentials.
@@ -145,55 +182,90 @@ class IntegrationController {
 
     /**
      * POST /api/integrations/connect-direct
-     * Body: { domainId, platformName, credentials: { apiKey } }
+     * Body:
+     *   Lexware: { domainId, platformName, credentials: { apiKey } }
+     *   GMX:     { domainId, platformName, credentials: { email, password } }
      * Validates the credential live against the platform, encrypts it, and stores it.
      */
     async connectDirect(req, res, next) {
         try {
             const userId = req.user.id;
             const { domainId, platformName, credentials } = req.body || {};
-            const apiKey = typeof credentials?.apiKey === 'string' ? credentials.apiKey.trim() : '';
+            const platformKey = String(platformName || '').toLowerCase();
 
             if (!domainId || !platformName) {
                 return ApiResponse.error(res, 'domainId and platformName are required', 400);
             }
-            if (!apiKey) {
-                return ApiResponse.error(res, 'API Key is required', 400);
-            }
-
-            const validator = directValidators[String(platformName).toLowerCase()];
-            if (!validator) {
+            if (platformKey !== 'lexware' && platformKey !== 'gmx') {
                 return ApiResponse.error(res, `Direct connection is not supported for ${platformName}`, 400);
             }
 
             // Make sure the domainId really belongs to the named platform,
-            // so a key can't be stored against an arbitrary domain.
+            // so credentials can't be stored against an arbitrary domain.
             const domain = await domainRepository.findById(domainId);
             if (!domain) {
                 return ApiResponse.error(res, 'Platform not found', 404);
             }
-            if (String(domain.name).toLowerCase() !== String(platformName).toLowerCase()) {
+            if (String(domain.name).toLowerCase() !== platformKey) {
                 return ApiResponse.error(res, 'domainId does not match platformName', 400);
             }
 
-            // Validation step: live call against the platform
-            try {
-                await validator({ apiKey });
-            } catch (axiosErr) {
-                const status = axiosErr.response?.status;
-                if (status === 401 || status === 403) {
-                    return ApiResponse.error(res, 'Invalid API Key', 400);
+            let payloadToEncrypt;
+
+            if (platformKey === 'gmx') {
+                // ---------------- GMX (IMAP: email + app password) ----------------
+                const email = typeof credentials?.email === 'string' ? credentials.email.trim().toLowerCase() : '';
+                // Do NOT trim passwords – whitespace may be significant
+                const password = typeof credentials?.password === 'string' ? credentials.password : '';
+
+                if (!email || !password) {
+                    return ApiResponse.error(res, 'Email address and App Password are required', 400);
                 }
-                if (status === 429) {
-                    return ApiResponse.error(res, `${domain.name} rate limit reached. Please try again in a moment.`, 429);
+                if (!EMAIL_REGEX.test(email)) {
+                    return ApiResponse.error(res, 'Invalid email address format', 400);
                 }
-                console.error(`[ERROR] ${domain.name} credential validation failed:`, axiosErr.response?.data || axiosErr.message);
-                return ApiResponse.error(res, `Could not reach ${domain.name} to validate the key. Please try again later.`, 502);
+
+                try {
+                    await validateImapLogin({ host: resolveGmxImapHost(email), port: 993, email, password });
+                } catch (imapErr) {
+                    const isNetworkError = !imapErr.authenticationFailed &&
+                        ['ENOTFOUND', 'ETIMEDOUT', 'ECONNREFUSED', 'ECONNRESET', 'EAI_AGAIN', 'NoConnection'].includes(imapErr.code);
+                    if (isNetworkError) {
+                        console.error('[ERROR] GMX IMAP unreachable:', imapErr.code, imapErr.message);
+                        return ApiResponse.error(res, 'Could not reach the GMX IMAP server. Please try again later.', 502);
+                    }
+                    console.warn('[WARN] GMX IMAP login failed:', imapErr.responseText || imapErr.message);
+                    return ApiResponse.error(res, 'Invalid GMX credentials or IMAP disabled', 400);
+                }
+
+                payloadToEncrypt = JSON.stringify({ email, password });
+            } else {
+                // ---------------- Lexware (API key) ----------------
+                const apiKey = typeof credentials?.apiKey === 'string' ? credentials.apiKey.trim() : '';
+                if (!apiKey) {
+                    return ApiResponse.error(res, 'API Key is required', 400);
+                }
+
+                try {
+                    await directValidators.lexware({ apiKey });
+                } catch (axiosErr) {
+                    const status = axiosErr.response?.status;
+                    if (status === 401 || status === 403) {
+                        return ApiResponse.error(res, 'Invalid API Key', 400);
+                    }
+                    if (status === 429) {
+                        return ApiResponse.error(res, `${domain.name} rate limit reached. Please try again in a moment.`, 429);
+                    }
+                    console.error(`[ERROR] ${domain.name} credential validation failed:`, axiosErr.response?.data || axiosErr.message);
+                    return ApiResponse.error(res, `Could not reach ${domain.name} to validate the key. Please try again later.`, 502);
+                }
+
+                payloadToEncrypt = apiKey;
             }
 
-            // Encryption + storage step (no refresh token for API-key platforms)
-            const encryptedKey = encrypt(apiKey);
-            await integrationRepository.upsertTokens(userId, domain.id, encryptedKey, null);
+            // Encryption + storage step (no refresh token for direct-credential platforms)
+            const encryptedPayload = encrypt(payloadToEncrypt);
+            await integrationRepository.upsertTokens(userId, domain.id, encryptedPayload, null);
 
             return ApiResponse.success(res, {
                 domainId: domain.id,
