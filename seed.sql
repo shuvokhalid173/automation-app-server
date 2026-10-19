@@ -54,6 +54,21 @@ CREATE TABLE `user_integrations` (
   CONSTRAINT `fk_ui_domain` FOREIGN KEY (`domain_id`) REFERENCES `domains` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `user_settings` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint unsigned NOT NULL,
+  `timezone` varchar(50) DEFAULT 'Europe/Berlin',
+  `frequency` enum('daily', 'weekly', 'monthly') DEFAULT 'monthly',
+  `day_of_month` int DEFAULT 1,
+  `day_of_week` int DEFAULT 1,
+  `execution_time` time DEFAULT '02:00:00',
+  `is_active` tinyint(1) DEFAULT '1',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_settings` (`user_id`),
+  CONSTRAINT `fk_settings_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `files` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `original_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
