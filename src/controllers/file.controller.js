@@ -44,9 +44,10 @@ class FileController {
                 '.txt': 'text/plain',
             };
             const contentType = mimeTypes[ext] || 'application/octet-stream';
+            const safeName = path.basename(String(file.original_name || 'document')).replace(/["\r\n]/g, '');
 
             res.setHeader('Content-Type', contentType);
-            res.setHeader('Content-Disposition', `inline; filename="${file.original_name}"`);
+            res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
             stream.pipe(res);
         } catch (err) {
             next(err);

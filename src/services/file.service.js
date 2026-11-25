@@ -1,6 +1,6 @@
 const fileRepository = require('../repositories/file.repository');
 const fs = require('fs');
-const path = require('path');
+const { resolveSafeStoragePath } = require('../utils/storage.util');
 
 class FileService {
     async getFiles(filters) {
@@ -19,7 +19,7 @@ class FileService {
 
     async getFileStream(id) {
         const file = await this.getFileById(id);
-        const filePath = file.local_file_location;
+        const filePath = resolveSafeStoragePath(file.local_file_location);
 
         if (!fs.existsSync(filePath)) {
             const error = new Error('File not found on disk');

@@ -97,7 +97,10 @@ class IntegrationController {
             pkceStore.set(userId, codeVerifier);
 
             const clientId = config.etsy.keystring || process.env.ETSY_KEYSTRING;
-            const redirectUri = config.etsy.redirectUri || process.env.ETSY_REDIRECT_URI || 'http://localhost:3000/oauth/etsy/callback';
+            const redirectUri = config.etsy.redirectUri;
+            if (!redirectUri) {
+                return ApiResponse.error(res, 'ETSY_REDIRECT_URI is not configured', 500);
+            }
             const scopes = 'shops_r transactions_r billing_r';
             const state = generateState();
 
@@ -128,7 +131,10 @@ class IntegrationController {
             }
 
             const clientId = config.etsy.keystring || process.env.ETSY_KEYSTRING;
-            const redirectUri = config.etsy.redirectUri || process.env.ETSY_REDIRECT_URI || 'http://localhost:3000/oauth/etsy/callback';
+            const redirectUri = config.etsy.redirectUri;
+            if (!redirectUri) {
+                return ApiResponse.error(res, 'ETSY_REDIRECT_URI is not configured', 500);
+            }
 
             // Exchange authorization code for tokens via Etsy API
             let tokenResponse;
@@ -321,8 +327,11 @@ class IntegrationController {
             paypalStateStore.set(userId, state);
 
             // 1. Trim to prevent hidden spaces in your .env file
-            const clientId = (config.paypal.clientId || process.env.PAYPAL_CLIENT_ID).trim();
-            const redirectUri = (config.paypal.redirectUri || process.env.PAYPAL_REDIRECT_URI || 'http://127.0.0.1:3000/oauth/paypal/callback').trim();
+            const clientId = (config.paypal.clientId || process.env.PAYPAL_CLIENT_ID || '').trim();
+            const redirectUri = (config.paypal.redirectUri || '').trim();
+            if (!redirectUri) {
+                return ApiResponse.error(res, 'PAYPAL_REDIRECT_URI is not configured', 500);
+            }
 
             const isLive = String(config.paypal.mode).toLowerCase() === 'live' || String(config.paypal.mode).toLowerCase() === 'production';
             const baseUrl = isLive
@@ -369,7 +378,10 @@ class IntegrationController {
             const clientId = config.paypal.clientId || process.env.PAYPAL_CLIENT_ID;
             const clientSecret = config.paypal.clientSecret || process.env.PAYPAL_SECRET;
 
-            const redirectUri = customRedirectUri || config.paypal.redirectUri || process.env.PAYPAL_REDIRECT_URI || 'http://127.0.0.1:3000/oauth/paypal/callback';
+            const redirectUri = customRedirectUri || config.paypal.redirectUri;
+            if (!redirectUri) {
+                return ApiResponse.error(res, 'PAYPAL_REDIRECT_URI is not configured', 500);
+            }
 
             const isLive = String(config.paypal.mode).toLowerCase() === 'live' || String(config.paypal.mode).toLowerCase() === 'production';
             const apiUrl = isLive ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';

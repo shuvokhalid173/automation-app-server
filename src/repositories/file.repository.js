@@ -38,7 +38,7 @@ class FileRepository {
                 SUM(CASE WHEN f.is_uploaded_to_destination = 1 THEN 1 ELSE 0 END) as uploaded,
                 SUM(CASE WHEN f.is_uploaded_to_destination = 0 THEN 1 ELSE 0 END) as pending
              FROM files f
-             JOIN mailboxes m ON m.id = f.mailbox_id
+             LEFT JOIN mailboxes m ON m.id = f.mailbox_id
              WHERE ${whereClause}`,
             params
         );
@@ -72,7 +72,7 @@ class FileRepository {
                 m.name AS mailbox_name,
                 m.email AS mailbox_email
              FROM files f
-             JOIN mailboxes m ON m.id = f.mailbox_id
+             LEFT JOIN mailboxes m ON m.id = f.mailbox_id
              WHERE ${whereClause}
              ORDER BY f.created_at DESC
              LIMIT ? OFFSET ?`,
@@ -99,8 +99,8 @@ class FileRepository {
                 m.email AS mailbox_email,
                 d.name AS domain_name
              FROM files f
-             JOIN mailboxes m ON m.id = f.mailbox_id
-             JOIN domains d ON d.id = m.domain_id
+             LEFT JOIN mailboxes m ON m.id = f.mailbox_id
+             LEFT JOIN domains d ON d.id = m.domain_id
              WHERE f.id = ? AND f.is_soft_deleted = FALSE`,
             [id]
         );

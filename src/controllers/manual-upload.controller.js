@@ -1,17 +1,14 @@
 const fs = require('fs');
 const path = require('path');
+const { resolveSafeStoragePath, sanitizeFileName } = require('../utils/storage.util');
 
-const DESTINATIONS = {
-  ebay: '/Users/kq/Desktop/Programming/business-automation/downloads/eBay',
-  'google-ads': '/Users/kq/Desktop/Programming/business-automation/downloads/google-ads'
-};
+const ALLOWED_DESTINATIONS = new Set(['ebay', 'google-ads']);
 
 const uploadFile = async (req, res) => {
   try {
-    const destinationKey = req.params.destination;
-    const destPath = DESTINATIONS[destinationKey];
+    const destinationKey = String(req.params.destination || '').toLowerCase();
 
-    if (!destPath) {
+    if (!ALLOWED_DESTINATIONS.has(destinationKey)) {
       return res.status(400).json({ error: 'Invalid destination' });
     }
 
@@ -19,36 +16,34 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Ensure the directory exists
-    if (!fs.existsSync(destPath)) {
-      fs.mkdirSync(destPath, { recursive: true });
-    }
-
-    // Append timestamp to original name
-    const ext = path.extname(req.file.originalname);
-    const base = path.basename(req.file.originalname, ext);
+    // Append timestamp to sanitized original name
+    const cleanOriginal = sanitizeFileName(req.file.originalname);
+    const ext = path.extname(cleanOriginal);
+    const base = path.basename(cleanOriginal, ext);
     const timestamp = Date.now();
     const finalFilename = `${base}_${timestamp}${ext}`;
-    
-    const finalPath = path.join(destPath, finalFilename);
 
-    // If using memoryStorage, req.file.buffer contains the file
-    // If using diskStorage, req.file.path contains the temp file path
-    // We will use memoryStorage in the route to avoid temp file cleanup issues.
-    fs.writeFileSync(finalPath, req.file.buffer);
+    const relativePath = path.join('manual', destinationKey, finalFilename);
+    const finalPath = resolveSafeStoragePath(relativePath);
+
+    await fs.promises.mkdir(path.dirname(finalPath), { recursive: true });
+    await fs.promises.writeFile(finalPath, req.file.buffer);
 
     res.json({
       success: true,
       message: 'File uploaded successfully',
-      path: finalPath,
-      filename: finalFilename
+      path: relativePath,
+      filename: finalFilename,
     });
   } catch (error) {
     console.error('Error in manual upload:', error);
-    res.status(500).json({ error: 'Failed to upload file', details: error.message });
+    res.status(error.statusCode || 500).json({
+      error: 'Failed to upload file',
+      details: error.message,
+    });
   }
 };
 
 module.exports = {
-  uploadFile
+  uploadFile,
 };

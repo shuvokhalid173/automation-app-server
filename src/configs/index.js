@@ -1,9 +1,18 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isProd = nodeEnv === 'production';
+
 module.exports = {
-    port: process.env.PORT || 3000,
-    env: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 3001,
+    env: nodeEnv,
+    isProd,
+    storageRoot: path.resolve(process.env.STORAGE_ROOT || './storage'),
+    corsOrigins: (process.env.CORS_ORIGIN || '')
+        .split(',')
+        .map(origin => origin.trim())
+        .filter(Boolean),
     db: {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT, 10) || 3306,
@@ -24,7 +33,7 @@ module.exports = {
     },
     etsy: {
         keystring: process.env.ETSY_KEYSTRING || '',
-        redirectUri: process.env.ETSY_REDIRECT_URI || 'http://localhost:3000/oauth/etsy/callback',
+        redirectUri: process.env.ETSY_REDIRECT_URI || (isProd ? '' : 'http://localhost:3000/oauth/etsy/callback'),
     },
     encryptionKey: process.env.ENCRYPTION_KEY || '',
     lexoffice: {
@@ -34,7 +43,7 @@ module.exports = {
         clientId: process.env.PAYPAL_CLIENT_ID || '',
         clientSecret: process.env.PAYPAL_SECRET || '',
         mode: process.env.PAYPAL_MODE || 'sandbox',
-        redirectUri: process.env.PAYPAL_REDIRECT_URI || 'http://localhost:3000/oauth/paypal/callback',
+        redirectUri: process.env.PAYPAL_REDIRECT_URI || (isProd ? '' : 'http://localhost:3000/oauth/paypal/callback'),
     },
 };
 
