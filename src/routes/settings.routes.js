@@ -12,4 +12,10 @@ router.get('/', settingsController.getSettings.bind(settingsController));
 // PUT /api/settings - update user automation preferences
 router.put('/', settingsController.updateSettings.bind(settingsController));
 
+// GET /api/settings/routing - retrieve domain routing configurations
+router.get('/routing', settingsController.getDomainRouting.bind(settingsController));
+
+// PUT /api/settings/routing - update domain routing configuration
+router.put('/routing', settingsController.updateDomainRouting.bind(settingsController));
+
 module.exports = router;

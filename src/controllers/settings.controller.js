@@ -75,6 +75,75 @@ class SettingsController {
             next(err);
         }
     }
+
+    /**
+     * GET /api/settings/routing
+     * Retrieve domain routing settings for the authenticated user
+     */
+    async getDomainRouting(req, res, next) {
+        try {
+            const userId = req.user.id;
+            const routingList = await settingsRepository.getDomainRouting(userId);
+            return ApiResponse.success(res, routingList, 'Domain routing settings retrieved');
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    /**
+     * PUT /api/settings/routing
+     * Update domain routing settings for a specific domain for the authenticated user
+     * Accepts: { domainId, type, ccEmail, destinationEmail, destinationApiUrl }
+     */
+    async updateDomainRouting(req, res, next) {
+        try {
+            const userId = req.user.id;
+            const {
+                domainId,
+                domain_id,
+                type = 'email',
+                ccEmail,
+                cc_email,
+                destinationEmail,
+                destination_email,
+                destinationApiUrl,
+                destination_api_url,
+            } = req.body || {};
+
+            const finalDomainId = domainId !== undefined ? Number(domainId) : (domain_id !== undefined ? Number(domain_id) : NaN);
+            if (isNaN(finalDomainId) || finalDomainId <= 0) {
+                return ApiResponse.error(res, 'Valid domainId is required', 400);
+            }
+
+            const finalType = String(type).toLowerCase().trim();
+            if (!['email', 'api'].includes(finalType)) {
+                return ApiResponse.error(res, "Type must be either 'email' or 'api'", 400);
+            }
+
+            const finalCcEmail = ccEmail !== undefined ? String(ccEmail).trim() : (cc_email !== undefined ? String(cc_email).trim() : '');
+            const finalDestinationEmail = destinationEmail !== undefined ? String(destinationEmail).trim() : (destination_email !== undefined ? String(destination_email).trim() : '');
+            const finalDestinationApiUrl = destinationApiUrl !== undefined ? String(destinationApiUrl).trim() : (destination_api_url !== undefined ? String(destination_api_url).trim() : '');
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (finalCcEmail && !emailRegex.test(finalCcEmail)) {
+                return ApiResponse.error(res, 'From / CC Reference Email must be a valid email address', 400);
+            }
+            if (finalDestinationEmail && !emailRegex.test(finalDestinationEmail)) {
+                return ApiResponse.error(res, 'Destination Email must be a valid email address', 400);
+            }
+
+            const updated = await settingsRepository.upsertDomainRouting(userId, finalDomainId, {
+                type: finalType,
+                ccEmail: finalCcEmail,
+                destinationEmail: finalDestinationEmail,
+                destinationApiUrl: finalDestinationApiUrl,
+            });
+
+            return ApiResponse.success(res, updated, 'Domain routing settings updated successfully');
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 module.exports = new SettingsController();

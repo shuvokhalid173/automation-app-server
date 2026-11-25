@@ -106,6 +106,94 @@ class SettingsRepository {
 
         return this.getSettings(userId);
     }
+
+    /**
+     * Get domain routing preferences for connected domains of a specific user
+     * @param {number} userId
+     * @returns {Promise<Array<object>>}
+     */
+    async getDomainRouting(userId) {
+        const sql = `
+            SELECT 
+                d.id AS domain_id,
+                d.name AS domain_name,
+                d.url AS domain_url,
+                ui.is_connected,
+                ui.type,
+                ui.cc_email,
+                ui.destination_email,
+                ui.destination_api_url
+            FROM user_integrations ui
+            INNER JOIN domains d ON d.id = ui.domain_id
+            WHERE ui.user_id = ? AND ui.is_connected = 1
+            ORDER BY d.id ASC
+        `;
+        const [rows] = await db.execute(sql, [userId]);
+        return (rows || []).map(row => ({
+            domainId: row.domain_id,
+            domainName: row.domain_name,
+            domainUrl: row.domain_url,
+            isConnected: Boolean(row.is_connected),
+            type: row.type || 'email',
+            ccEmail: row.cc_email || '',
+            destinationEmail: row.destination_email || '',
+            destinationApiUrl: row.destination_api_url || '',
+        }));
+    }
+
+    /**
+     * Upsert domain routing preferences for a user
+     * @param {number} userId
+     * @param {number} domainId
+     * @param {object} routingData
+     * @returns {Promise<object>} updated routing record for this domain
+     */
+    async upsertDomainRouting(userId, domainId, { type, ccEmail, destinationEmail, destinationApiUrl }) {
+        const finalType = type === 'api' ? 'api' : 'email';
+        const finalCcEmail = ccEmail ? String(ccEmail).trim() : null;
+        const finalDestEmail = destinationEmail ? String(destinationEmail).trim() : null;
+        const finalDestApiUrl = destinationApiUrl ? String(destinationApiUrl).trim() : null;
+
+        const sql = `
+            INSERT INTO user_integrations (user_id, domain_id, type, cc_email, destination_email, destination_api_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                type = VALUES(type),
+                cc_email = VALUES(cc_email),
+                destination_email = VALUES(destination_email),
+                destination_api_url = VALUES(destination_api_url)
+        `;
+
+        await db.execute(sql, [
+            userId,
+            domainId,
+            finalType,
+            finalCcEmail,
+            finalDestEmail,
+            finalDestApiUrl,
+        ]);
+
+        const [rows] = await db.execute(
+            `SELECT d.id AS domain_id, d.name AS domain_name, d.url AS domain_url,
+                    ui.is_connected, ui.type, ui.cc_email, ui.destination_email, ui.destination_api_url
+             FROM user_integrations ui
+             INNER JOIN domains d ON d.id = ui.domain_id
+             WHERE ui.user_id = ? AND ui.domain_id = ?`,
+            [userId, domainId]
+        );
+        if (!rows || rows.length === 0) return null;
+        const r = rows[0];
+        return {
+            domainId: r.domain_id,
+            domainName: r.domain_name,
+            domainUrl: r.domain_url,
+            isConnected: Boolean(r.is_connected),
+            type: r.type || 'email',
+            ccEmail: r.cc_email || '',
+            destinationEmail: r.destination_email || '',
+            destinationApiUrl: r.destination_api_url || '',
+        };
+    }
 }
 
 module.exports = new SettingsRepository();
