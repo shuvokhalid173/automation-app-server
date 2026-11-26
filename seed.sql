@@ -90,6 +90,30 @@ CREATE TABLE IF NOT EXISTS `automation_jobs` (
   CONSTRAINT `fk_jobs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `user_devices` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `device_uuid` char(36) NOT NULL,
+  `user_id` bigint unsigned NOT NULL,
+  `device_name` varchar(255) DEFAULT NULL,
+  `os_platform` enum('windows','macos','linux') NOT NULL DEFAULT 'windows',
+  `os_version` varchar(100) DEFAULT NULL,
+  `hostname` varchar(255) DEFAULT NULL,
+  `machine_fingerprint` varchar(255) DEFAULT NULL,
+  `browser_user_agent` varchar(500) DEFAULT NULL,
+  `device_token_hash` char(64) NOT NULL,
+  `status` enum('pending','connected','revoked') NOT NULL DEFAULT 'pending',
+  `last_ip` varchar(64) DEFAULT NULL,
+  `connected_at` datetime DEFAULT NULL,
+  `last_seen_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_device_uuid` (`device_uuid`),
+  UNIQUE KEY `uk_device_token_hash` (`device_token_hash`),
+  KEY `idx_user_devices_user_status` (`user_id`, `status`),
+  CONSTRAINT `fk_user_devices_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `files` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `original_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,

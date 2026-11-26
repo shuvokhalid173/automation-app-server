@@ -56,6 +56,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/manual-upload', require('./routes/manual-upload.routes'));
 app.use('/api/settings', require('./routes/settings.routes'));
 app.use('/api/jobs', require('./routes/job.routes'));
+app.use('/api/devices', require('./routes/device.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 
 // 404 & Error handlers
